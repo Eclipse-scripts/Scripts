@@ -1,0 +1,604 @@
+--[[
+    ====================================================================
+    [ ⚠️ ADVERTENCIA Y AVISO DE RESPONSABILIDAD / DISCLAIMER ⚠️ ]
+    ====================================================================
+--]]
+
+print("[FollowGui] Cargando versión animada v3.0...")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local Camera = workspace.CurrentCamera
+
+local SystemLang = "es"
+pcall(function()
+	SystemLang = string.sub(UserInputService:GetDeviceLanguage(), 1, 2)
+end)
+
+local Translations = {
+	es = {
+		placeholder = "Nombre del objetivo...",
+		selectPlayer = "Seleccionar Jugador v",
+		btnStart = "Bloqueo Trasero",
+		btnStop = "Liberar Objetivo",
+		warningTitle = "⚠️ ADVERTENCIA DE USO",
+		warningText = "Este script fue diseñado con fines interactivos para combatir o trolear EXPLOITERS en juegos FPS.\n\n⚠️ NOTA: Puede presentar fallos en juegos con cámaras customizadas.",
+		noTargetTitle = "⚠️ Error de Selección",
+		noTargetText = "No has seleccionado ningún jugador válido."
+	},
+	en = {
+		placeholder = "Target player...",
+		selectPlayer = "Select Player v",
+		btnStart = "Rear Lock-On",
+		btnStop = "Release Target",
+		warningTitle = "⚠️ USAGE WARNING",
+		warningText = "This script was designed exclusively for interactive use to counter EXPLOITERS in FPS games.\n\n⚠️ NOTE: May glitch in games with custom camera engines.",
+		noTargetTitle = "⚠️ Selection Error",
+		noTargetText = "No valid player selected."
+	}
+}
+local T = Translations[SystemLang] or Translations.en
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+if not PlayerGui then return end
+
+if PlayerGui:FindFirstChild("FollowGui") then
+	PlayerGui.FollowGui:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FollowGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- --------------------------------------------------------------------
+-- GUI PRINCIPAL
+-- --------------------------------------------------------------------
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -75)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+MainFrame.BackgroundTransparency = 1
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = false
+MainFrame.Visible = false
+MainFrame.ZIndex = 5
+MainFrame.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(80, 80, 120)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 1
+MainStroke.Parent = MainFrame
+
+-- --------------------------------------------------------------------
+-- GUI DE ADVERTENCIA
+-- --------------------------------------------------------------------
+local WarnFrame = Instance.new("Frame")
+WarnFrame.Name = "WarningGUI"
+WarnFrame.Size = UDim2.new(0, 380, 0, 240)
+WarnFrame.Position = UDim2.new(0.5, -190, 0.5, -120)
+WarnFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+WarnFrame.BorderSizePixel = 0
+WarnFrame.Active = true
+WarnFrame.ZIndex = 20
+WarnFrame.Parent = ScreenGui
+
+local WarnCorner = Instance.new("UICorner")
+WarnCorner.CornerRadius = UDim.new(0, 12)
+WarnCorner.Parent = WarnFrame
+
+-- Borde Arcoíris Dinámico
+local WarnStroke = Instance.new("UIStroke")
+WarnStroke.Thickness = 3
+WarnStroke.Parent = WarnFrame
+
+local rainbowConnection = RunService.RenderStepped:Connect(function()
+	local hue = (tick() % 3) / 3
+	WarnStroke.Color = Color3.fromHSV(hue, 0.8, 1)
+end)
+
+-- Pestaña Superior de Versión Animada
+local VersionBadge = Instance.new("Frame")
+VersionBadge.Name = "VersionBadge"
+VersionBadge.Size = UDim2.new(0, 100, 0, 25)
+VersionBadge.Position = UDim2.new(0.5, -50, 0, 0)
+VersionBadge.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+VersionBadge.BorderSizePixel = 0
+VersionBadge.ZIndex = 19
+VersionBadge.Parent = WarnFrame
+
+local BadgeCorner = Instance.new("UICorner")
+BadgeCorner.CornerRadius = UDim.new(0, 6)
+BadgeCorner.Parent = VersionBadge
+
+local BadgeText = Instance.new("TextLabel")
+BadgeText.Size = UDim2.new(1, 0, 1, 0)
+BadgeText.BackgroundTransparency = 1
+BadgeText.Text = "v3.0.0"
+BadgeText.TextColor3 = Color3.fromRGB(0, 255, 180)
+BadgeText.TextSize = 12
+BadgeText.Font = Enum.Font.SourceSansBold
+BadgeText.ZIndex = 19
+BadgeText.Parent = VersionBadge
+
+-- Animación de entrada de la Pestaña de Versión
+task.spawn(function()
+	task.wait(0.5)
+	VersionBadge:TweenPosition(UDim2.new(0.5, -50, 0, -25), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.5, true)
+end)
+
+local WarnTitle = Instance.new("TextLabel")
+WarnTitle.Size = UDim2.new(1, 0, 0, 40)
+WarnTitle.Position = UDim2.new(0, 0, 0, 5)
+WarnTitle.BackgroundTransparency = 1
+WarnTitle.Text = T.warningTitle
+WarnTitle.TextColor3 = Color3.fromRGB(255, 70, 70)
+WarnTitle.TextSize = 16
+WarnTitle.Font = Enum.Font.SourceSansBold
+WarnTitle.ZIndex = 21
+WarnTitle.Parent = WarnFrame
+
+local WarnText = Instance.new("TextLabel")
+WarnText.Size = UDim2.new(1, -30, 0, 180)
+WarnText.Position = UDim2.new(0, 15, 0, 45)
+WarnText.BackgroundTransparency = 1
+WarnText.Text = T.warningText
+WarnText.TextColor3 = Color3.fromRGB(230, 230, 230)
+WarnText.TextSize = 14
+WarnText.Font = Enum.Font.SourceSans
+WarnText.TextWrapped = true
+WarnText.TextYAlignment = Enum.TextYAlignment.Top
+WarnText.ZIndex = 21
+WarnText.Parent = WarnFrame
+
+-- Transición de la Advertencia hacia la GUI Principal
+task.spawn(function()
+	task.wait(5.5)
+	
+	-- Pestaña se guarda antes del desvanecimiento
+	VersionBadge:TweenPosition(UDim2.new(0.5, -50, 0, 0), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.4, true)
+	task.wait(0.4)
+	
+	local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	
+	-- Animación de desvanecimiento
+	TweenService:Create(WarnFrame, tweenInfo, {BackgroundTransparency = 1}):Play()
+	TweenService:Create(WarnTitle, tweenInfo, {TextTransparency = 1}):Play()
+	TweenService:Create(WarnText, tweenInfo, {TextTransparency = 1}):Play()
+	TweenService:Create(WarnStroke, tweenInfo, {Transparency = 1}):Play()
+	TweenService:Create(BadgeText, tweenInfo, {TextTransparency = 1}):Play()
+	TweenService:Create(VersionBadge, tweenInfo, {BackgroundTransparency = 1}):Play()
+
+	-- Aparición de GUI Principal
+	MainFrame.Visible = true
+	TweenService:Create(MainFrame, tweenInfo, {BackgroundTransparency = 0}):Play()
+	TweenService:Create(MainStroke, tweenInfo, {Transparency = 0}):Play()
+
+	task.wait(1.2)
+	rainbowConnection:Disconnect()
+	WarnFrame:Destroy()
+	MainFrame.Active = true
+end)
+
+-- Sistema de Arrastre
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+	if not MainFrame.Active then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+	if not MainFrame.Active then return end
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+-- Botón Cerrar (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -30, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.ZIndex = 6
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+-- Botón Minimizar
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Position = UDim2.new(1, -60, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MinimizeBtn.Text = "v"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 14
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.ZIndex = 6
+MinimizeBtn.Parent = MainFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
+
+-- Campo de Entrada
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 180, 0, 30)
+TextBox.Position = UDim2.new(0, 20, 0, 35)
+TextBox.PlaceholderText = T.placeholder
+TextBox.Text = ""
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+TextBox.TextSize = 13
+TextBox.Font = Enum.Font.SourceSans
+TextBox.ZIndex = 6
+TextBox.Parent = MainFrame
+
+local TextCorner = Instance.new("UICorner")
+TextCorner.CornerRadius = UDim.new(0, 6)
+TextCorner.Parent = TextBox
+
+-- Botón Desplegable de Jugadores
+local DropdownBtn = Instance.new("TextButton")
+DropdownBtn.Size = UDim2.new(0, 180, 0, 25)
+DropdownBtn.Position = UDim2.new(0, 20, 0, 70)
+DropdownBtn.Text = T.selectPlayer
+DropdownBtn.BackgroundColor3 = Color3.fromRGB(65, 65, 80)
+DropdownBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+DropdownBtn.TextSize = 12
+DropdownBtn.Font = Enum.Font.SourceSans
+DropdownBtn.ZIndex = 6
+DropdownBtn.Parent = MainFrame
+
+local DropCorner = Instance.new("UICorner")
+DropCorner.CornerRadius = UDim.new(0, 6)
+DropCorner.Parent = DropdownBtn
+
+-- Contenedor de Lista de Jugadores
+local ListFrame = Instance.new("ScrollingFrame")
+ListFrame.Size = UDim2.new(0, 180, 0, 90)
+ListFrame.Position = UDim2.new(0, 20, 0, 98)
+ListFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+ListFrame.BorderSizePixel = 0
+ListFrame.Visible = false
+ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ListFrame.ScrollBarThickness = 4
+ListFrame.ZIndex = 15
+ListFrame.Parent = MainFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Parent = ListFrame
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Botón Principal
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 180, 0, 35)
+ToggleButton.Position = UDim2.new(0, 20, 0, 105)
+ToggleButton.Text = T.btnStart
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 14
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.ZIndex = 6
+ToggleButton.Parent = MainFrame
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 6)
+BtnCorner.Parent = ToggleButton
+
+TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+	if TextBox.Text == "" then
+		selectedPlayer = nil
+	end
+end)
+
+-- SISTEMA DE ESP / V-MARKER INTEGRADO
+local selectedPlayer = nil
+local currentHighlight = nil
+local currentBillboard = nil
+local espConnection = nil
+
+local function removeESP()
+	if espConnection then espConnection:Disconnect() espConnection = nil end
+	if currentHighlight then currentHighlight:Destroy() currentHighlight = nil end
+	if currentBillboard then currentBillboard:Destroy() currentBillboard = nil end
+end
+
+local function applyESP(player)
+	removeESP()
+	if not player or not player.Character then return end
+
+	-- Flecha V-Marker
+	local head = player.Character:FindFirstChild("Head") or player.Character:FindFirstChild("HumanoidRootPart")
+	if head then
+		local bb = Instance.new("BillboardGui")
+		bb.Name = "TargetTracker_VectorMarker"
+		bb.Size = UDim2.new(0, 140, 0, 60)
+		bb.StudsOffset = Vector3.new(0, 3.5, 0)
+		bb.AlwaysOnTop = true
+		bb.Adornee = head
+
+		local vectorPointer = Instance.new("TextLabel")
+		vectorPointer.Size = UDim2.new(1, 0, 0.5, 0)
+		vectorPointer.BackgroundTransparency = 1
+		vectorPointer.Text = "▼"
+		vectorPointer.TextColor3 = Color3.fromRGB(255, 40, 40)
+		vectorPointer.TextSize = 24
+		vectorPointer.Font = Enum.Font.SourceSansBold
+		vectorPointer.Parent = bb
+
+		local labelTag = Instance.new("TextLabel")
+		labelTag.Size = UDim2.new(1, 0, 0.5, 0)
+		labelTag.Position = UDim2.new(0, 0, 0.5, 0)
+		labelTag.BackgroundTransparency = 1
+		labelTag.Text = "[ " .. string.upper(player.DisplayName) .. " ]"
+		labelTag.TextColor3 = Color3.fromRGB(255, 255, 255)
+		labelTag.TextSize = 12
+		labelTag.Font = Enum.Font.SourceSansBold
+		labelTag.Parent = bb
+
+		bb.Parent = player.Character
+		currentBillboard = bb
+	end
+
+	-- Aura ESP con límite de distancia
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "TargetTracker_Highlight"
+	highlight.FillTransparency = 1
+	highlight.OutlineColor = Color3.fromRGB(255, 40, 40)
+	highlight.OutlineTransparency = 0
+	highlight.Adornee = player.Character
+	highlight.Parent = player.Character
+	currentHighlight = highlight
+
+	espConnection = RunService.RenderStepped:Connect(function()
+		local myChar = LocalPlayer.Character
+		local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+		local targetChar = player.Character
+		local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+
+		if myHRP and targetHRP and currentHighlight then
+			local distance = (myHRP.Position - targetHRP.Position).Magnitude
+			if distance <= 150 then
+				currentHighlight.Enabled = true
+			else
+				currentHighlight.Enabled = false
+			end
+		end
+	end)
+end
+
+-- Lista de Jugadores Desplegable
+local function updatePlayerList()
+	for _, child in ipairs(ListFrame:GetChildren()) do
+		if child:IsA("Frame") or child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+
+	local count = 0
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			count = count + 1
+			local ItemFrame = Instance.new("Frame")
+			ItemFrame.Size = UDim2.new(1, 0, 0, 30)
+			ItemFrame.BackgroundTransparency = 1
+			ItemFrame.ZIndex = 16
+			ItemFrame.Parent = ListFrame
+
+			local HeadIcon = Instance.new("ImageLabel")
+			HeadIcon.Size = UDim2.new(0, 24, 0, 24)
+			HeadIcon.Position = UDim2.new(0, 3, 0, 3)
+			HeadIcon.BackgroundTransparency = 1
+			HeadIcon.ZIndex = 16
+			
+			task.spawn(function()
+				pcall(function()
+					HeadIcon.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+				end)
+			end)
+			HeadIcon.Parent = ItemFrame
+
+			local NameBtn = Instance.new("TextButton")
+			NameBtn.Size = UDim2.new(1, -32, 1, 0)
+			NameBtn.Position = UDim2.new(0, 30, 0, 0)
+			NameBtn.BackgroundTransparency = 1
+			NameBtn.Text = player.DisplayName
+			NameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			NameBtn.TextXAlignment = Enum.TextXAlignment.Left
+			NameBtn.TextSize = 12
+			NameBtn.Font = Enum.Font.SourceSans
+			NameBtn.ZIndex = 16
+			NameBtn.Parent = ItemFrame
+
+			NameBtn.MouseButton1Click:Connect(function()
+				if not MainFrame.Active then return end
+				selectedPlayer = player
+				TextBox.Text = player.Name
+				applyESP(player)
+				
+				ListFrame.Visible = false
+				MainFrame.Size = UDim2.new(0, 220, 0, 150)
+				ToggleButton.Position = UDim2.new(0, 20, 0, 105)
+			end)
+		end
+	end
+	ListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 30)
+end
+
+DropdownBtn.MouseButton1Click:Connect(function()
+	if not MainFrame.Active then return end
+	ListFrame.Visible = not ListFrame.Visible
+	if ListFrame.Visible then
+		updatePlayerList()
+		MainFrame.Size = UDim2.new(0, 220, 0, 240)
+		ToggleButton.Position = UDim2.new(0, 20, 0, 195)
+	else
+		MainFrame.Size = UDim2.new(0, 220, 0, 150)
+		ToggleButton.Position = UDim2.new(0, 20, 0, 105)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if selectedPlayer and player == selectedPlayer then
+		removeESP()
+		selectedPlayer = nil
+	end
+end)
+
+local isMinimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+	if not MainFrame.Active then return end
+	isMinimized = not isMinimized
+	if isMinimized then
+		MainFrame.Size = UDim2.new(0, 220, 0, 35)
+		TextBox.Visible = false
+		DropdownBtn.Visible = false
+		ListFrame.Visible = false
+		ToggleButton.Visible = false
+		MinimizeBtn.Text = "^"
+	else
+		MainFrame.Size = UDim2.new(0, 220, 0, 150)
+		TextBox.Visible = true
+		DropdownBtn.Visible = true
+		ToggleButton.Visible = true
+		ToggleButton.Position = UDim2.new(0, 20, 0, 105)
+		MinimizeBtn.Text = "v"
+	end
+end)
+
+-- --------------------------------------------------------------------
+-- LÓGICA DE SEGUIMIENTO Y CÁMARA
+-- --------------------------------------------------------------------
+local following = false
+local followConnection = nil
+
+local function getTargetPlayer(nameText)
+	if selectedPlayer then return selectedPlayer end
+	if not nameText or string.gsub(nameText, "%s+", "") == "" then return nil end
+	
+	nameText = string.lower(nameText)
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			if string.find(string.lower(player.Name), nameText) or string.find(string.lower(player.DisplayName), nameText) then
+				return player
+			end
+		end
+	end
+	return nil
+end
+
+local function stopFollowing()
+	following = false
+	ToggleButton.Text = T.btnStart
+	ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+	Camera.CameraType = Enum.CameraType.Custom
+	
+	if followConnection then
+		followConnection:Disconnect()
+		followConnection = nil
+	end
+	
+	if selectedPlayer then
+		applyESP(selectedPlayer)
+	end
+end
+
+ToggleButton.MouseButton1Click:Connect(function()
+	if not MainFrame.Active then return end
+	if following then
+		stopFollowing()
+	else
+		local target = getTargetPlayer(TextBox.Text)
+		
+		if not target then
+			pcall(function()
+				StarterGui:SetCore("SendNotification", {
+					Title = T.noTargetTitle,
+					Text = T.noTargetText,
+					Duration = 4
+				})
+			end)
+			return
+		end
+
+		following = true
+		removeESP()
+		ToggleButton.Text = T.btnStop
+		ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		
+		followConnection = RunService.RenderStepped:Connect(function()
+			local myChar = LocalPlayer.Character
+			local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+			local targetChar = target.Character
+			local targetHRP = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+			local targetHumanoid = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+			
+			local isTargetAlive = targetChar and targetHRP and targetHumanoid and targetHumanoid.Health > 0
+			
+			if isTargetAlive and myHRP then
+				Camera.CameraType = Enum.CameraType.Scriptable
+				
+				local targetCFrame = targetHRP.CFrame * CFrame.new(0, 0, 10)
+				myHRP.CFrame = targetCFrame
+				myHRP.CFrame = CFrame.lookAt(myHRP.Position, Vector3.new(targetHRP.Position.X, myHRP.Position.Y, targetHRP.Position.Z))
+				
+				local headPos = targetChar:FindFirstChild("Head") and targetChar.Head.Position or targetHRP.Position
+				Camera.CFrame = CFrame.lookAt(myHRP.Position + Vector3.new(0, 5, 0), headPos)
+			else
+				Camera.CameraType = Enum.CameraType.Custom
+			end
+		end)
+	end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	local hum = char:WaitForChild("Humanoid", 5)
+	if hum then
+		hum.Died:Connect(function()
+			if Players.RespawnTime > 0 then
+				task.wait(math.max(0, Players.RespawnTime - 2))
+				pcall(function() LocalPlayer:LoadCharacter() end)
+			end
+		end)
+	end
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+	stopFollowing()
+	removeESP()
+	ScreenGui:Destroy()
+end)
+
+print("[FollowGui] Módulo cargado correctamente.")
