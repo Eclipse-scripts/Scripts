@@ -1,0 +1,578 @@
+--[[
+    ====================================================================
+    [ ⚠️ ADVERTENCIA Y AVISO DE RESPONSABILIDAD / DISCLAIMER ⚠️ ]
+    ====================================================================
+    Versión: v3.6.0 (Secuencia Triple GUI + Créditos Eclipse)
+--]]
+
+print("[FollowGui] Cargando v3.6.0 (Secuencia de Pantallas + Animaciones)...")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local Camera = workspace.CurrentCamera
+
+-- --------------------------------------------------------------------
+-- BLINDAJE DE INSTANCIA ÚNICA Y LIMPIEZA PREVIA
+-- --------------------------------------------------------------------
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+if not PlayerGui then return end
+
+if PlayerGui:FindFirstChild("FollowGui") then
+	local oldGui = PlayerGui.FollowGui
+	if oldGui:FindFirstChild("CleanupEvent") then
+		oldGui.CleanupEvent:Fire()
+	end
+	oldGui:Destroy()
+	task.wait(0.1)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FollowGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local CleanupEvent = Instance.new("BindableEvent")
+CleanupEvent.Name = "CleanupEvent"
+CleanupEvent.Parent = ScreenGui
+
+-- Variables Globales
+local FollowDistance = 10
+local selectedPlayer = nil
+local following = false
+
+local followConnection = nil
+local espConnection = nil
+local rainbowConnection = nil
+
+local currentHighlight = nil
+local currentBillboard = nil
+
+-- Función Central de Limpieza Total
+local function fullCleanup()
+	following = false
+	Camera.CameraType = Enum.CameraType.Custom
+	
+	if followConnection then followConnection:Disconnect() followConnection = nil end
+	if espConnection then espConnection:Disconnect() espConnection = nil end
+	if rainbowConnection then rainbowConnection:Disconnect() rainbowConnection = nil end
+	
+	if currentHighlight then currentHighlight:Destroy() currentHighlight = nil end
+	if currentBillboard then currentBillboard:Destroy() currentBillboard = nil end
+end
+
+CleanupEvent.Event:Connect(fullCleanup)
+
+-- Idioma
+local SystemLang = "es"
+pcall(function()
+	SystemLang = string.sub(UserInputService:GetDeviceLanguage(), 1, 2)
+end)
+
+local Translations = {
+	es = {
+		placeholder = "Nombre del objetivo...",
+		selectPlayer = "Seleccionar Jugador v",
+		btnStart = "Bloqueo Trasero",
+		btnStop = "Liberar Objetivo",
+		warningTitle = "⚠️ ADVERTENCIA DE USO",
+		warningText = "Este script fue diseñado con fines interactivos para combatir EXPLOITERS en juegos FPS.\n\n⚠️ NOTA: Puede presentar fallos en juegos con cámaras customizadas.",
+		noTargetTitle = "⚠️ Error de Selección",
+		noTargetText = "No has seleccionado ningún jugador válido.",
+		configTitle = "DISTANCIA DE SEGUIMIENTO (STUDS)"
+	},
+	en = {
+		placeholder = "Target player...",
+		selectPlayer = "Select Player v",
+		btnStart = "Rear Lock-On",
+		btnStop = "Release Target",
+		warningTitle = "⚠️ USAGE WARNING",
+		warningText = "This script was designed exclusively for interactive use in FPS games.\n\n⚠️ NOTE: May glitch in games with custom camera engines.",
+		noTargetTitle = "⚠️ Selection Error",
+		noTargetText = "No valid player selected.",
+		configTitle = "FOLLOW DISTANCE (STUDS)"
+	}
+}
+local T = Translations[SystemLang] or Translations.en
+
+local function setupHoverEffect(button, normalColor, hoverColor)
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = hoverColor
+		}):Play()
+	end)
+	
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = normalColor
+		}):Play()
+	end)
+end
+
+-- --------------------------------------------------------------------
+-- GUI PRINCIPAL Y CONTENEDORES
+-- --------------------------------------------------------------------
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 240, 0, 230)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -115)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = false
+MainFrame.Visible = false
+MainFrame.ClipsDescendants = true
+MainFrame.ZIndex = 5
+MainFrame.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 12)
+Corner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(0, 210, 255)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 1
+MainStroke.Parent = MainFrame
+
+-- --------------------------------------------------------------------
+-- 1. GUI COP (PANTALLA DE CRÉDITOS ECLIPSE)
+-- --------------------------------------------------------------------
+local CopFrame = Instance.new("Frame")
+CopFrame.Name = "CopGUI"
+CopFrame.Size = UDim2.new(0, 320, 0, 180)
+CopFrame.Position = UDim2.new(0.5, -160, 0.5, -90)
+CopFrame.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+CopFrame.BorderSizePixel = 0
+CopFrame.Active = true
+CopFrame.ZIndex = 25
+CopFrame.Parent = ScreenGui
+
+local CopCorner = Instance.new("UICorner")
+CopCorner.CornerRadius = UDim.new(0, 14)
+CopCorner.Parent = CopFrame
+
+local CopStroke = Instance.new("UIStroke")
+CopStroke.Thickness = 2
+CopStroke.Parent = CopFrame
+
+rainbowConnection = RunService.RenderStepped:Connect(function()
+	local hue = (tick() % 3) / 3
+	CopStroke.Color = Color3.fromHSV(hue, 0.8, 1)
+end)
+
+-- Badge de Versión
+local VersionBadge = Instance.new("Frame")
+VersionBadge.Name = "VersionBadge"
+VersionBadge.Size = UDim2.new(0, 90, 0, 24)
+VersionBadge.Position = UDim2.new(0.5, -45, 0, 0)
+VersionBadge.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+VersionBadge.BorderSizePixel = 0
+VersionBadge.ZIndex = 26
+VersionBadge.Parent = CopFrame
+
+local BadgeCorner = Instance.new("UICorner")
+BadgeCorner.CornerRadius = UDim.new(0, 6)
+BadgeCorner.Parent = VersionBadge
+
+local BadgeText = Instance.new("TextLabel")
+BadgeText.Size = UDim2.new(1, 0, 1, 0)
+BadgeText.BackgroundTransparency = 1
+BadgeText.Text = "v3.6.0"
+BadgeText.TextColor3 = Color3.fromRGB(0, 210, 255)
+BadgeText.TextSize = 12
+BadgeText.Font = Enum.Font.GothamBold
+BadgeText.ZIndex = 26
+BadgeText.Parent = VersionBadge
+
+task.spawn(function()
+	task.wait(0.2)
+	VersionBadge:TweenPosition(UDim2.new(0.5, -45, 0, -24), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.4, true)
+end)
+
+-- Contenido GUI Cop (Decoración Eclipse 🌙✨)
+local CopTitle = Instance.new("TextLabel")
+CopTitle.Size = UDim2.new(1, 0, 0, 40)
+CopTitle.Position = UDim2.new(0, 0, 0, 15)
+CopTitle.BackgroundTransparency = 1
+CopTitle.Text = "🌙 ECLIPSE SYSTEM ✨"
+CopTitle.TextColor3 = Color3.fromRGB(0, 210, 255)
+CopTitle.TextSize = 18
+CopTitle.Font = Enum.Font.FredokaOne
+CopTitle.ZIndex = 26
+CopTitle.Parent = CopFrame
+
+local CopSub = Instance.new("TextLabel")
+CopSub.Size = UDim2.new(1, 0, 0, 30)
+CopSub.Position = UDim2.new(0, 0, 0, 60)
+CopSub.BackgroundTransparency = 1
+CopSub.Text = "Hecho por Eclipse"
+CopSub.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopSub.TextSize = 14
+CopSub.Font = Enum.Font.GothamBold
+CopSub.ZIndex = 26
+CopSub.Parent = CopFrame
+
+local CopDesc = Instance.new("TextLabel")
+CopDesc.Size = UDim2.new(1, -40, 0, 50)
+CopDesc.Position = UDim2.new(0, 20, 0, 100)
+CopDesc.BackgroundTransparency = 1
+CopDesc.Text = "🚀 Cargando módulos tácticos e interfaz v3.6.0..."
+CopDesc.TextColor3 = Color3.fromRGB(170, 170, 200)
+CopDesc.TextSize = 11
+CopDesc.Font = Enum.Font.GothamMedium
+CopDesc.TextWrapped = true
+CopDesc.ZIndex = 26
+CopDesc.Parent = CopFrame
+
+-- --------------------------------------------------------------------
+-- 2. GUI DE ADVERTENCIA (Oculta al inicio)
+-- --------------------------------------------------------------------
+local WarnFrame = Instance.new("Frame")
+WarnFrame.Name = "WarningGUI"
+WarnFrame.Size = UDim2.new(0, 0, 0, 0) -- Empieza en cero para la animación de expansión
+WarnFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+WarnFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+WarnFrame.BorderSizePixel = 0
+WarnFrame.Active = false
+WarnFrame.Visible = false
+WarnFrame.ClipsDescendants = true
+WarnFrame.ZIndex = 20
+WarnFrame.Parent = ScreenGui
+
+local WarnCorner = Instance.new("UICorner")
+WarnCorner.CornerRadius = UDim.new(0, 14)
+WarnCorner.Parent = WarnFrame
+
+local WarnStroke = Instance.new("UIStroke")
+WarnStroke.Thickness = 2.5
+WarnStroke.Transparency = 1
+WarnStroke.Parent = WarnFrame
+
+local WarnTitle = Instance.new("TextLabel")
+WarnTitle.Size = UDim2.new(1, 0, 0, 40)
+WarnTitle.Position = UDim2.new(0, 0, 0, 8)
+WarnTitle.BackgroundTransparency = 1
+WarnTitle.Text = T.warningTitle
+WarnTitle.TextColor3 = Color3.fromRGB(255, 55, 85)
+WarnTitle.TextSize = 15
+WarnTitle.Font = Enum.Font.FredokaOne
+WarnTitle.ZIndex = 21
+WarnTitle.Parent = WarnFrame
+
+local WarnText = Instance.new("TextLabel")
+WarnText.Size = UDim2.new(1, -30, 0, 170)
+WarnText.Position = UDim2.new(0, 15, 0, 48)
+WarnText.BackgroundTransparency = 1
+WarnText.Text = T.warningText
+WarnText.TextColor3 = Color3.fromRGB(220, 220, 230)
+WarnText.TextSize = 13
+WarnText.Font = Enum.Font.GothamMedium
+WarnText.TextWrapped = true
+WarnText.TextYAlignment = Enum.TextYAlignment.Top
+WarnText.ZIndex = 21
+WarnText.Parent = WarnFrame
+
+-- --------------------------------------------------------------------
+-- SECUENCIA DE TRANSICIÓN TRIPLE (Cop -> Warn -> Main)
+-- --------------------------------------------------------------------
+task.spawn(function()
+	task.wait(3.5) -- Tiempo visible de GUI Cop
+	
+	-- 1. Guardar y eliminar Badge
+	local badgeHide = TweenService:Create(VersionBadge, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Position = UDim2.new(0.5, -45, 0, 0)
+	})
+	badgeHide:Play()
+	badgeHide.Completed:Wait()
+	VersionBadge:Destroy()
+	
+	-- 2. Desvanecer GUI Cop por completo
+	local fadeCop = TweenService:Create(CopFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1
+	})
+	TweenService:Create(CopTitle, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+	TweenService:Create(CopSub, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+	TweenService:Create(CopDesc, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+	TweenService:Create(CopStroke, TweenInfo.new(0.4), {Transparency = 1}):Play()
+	
+	fadeCop:Play()
+	fadeCop.Completed:Wait()
+	CopFrame:Destroy()
+	
+	-- 3. Transición: GUI Advertencia aparece AGRANDÁNDOSE desde el centro
+	WarnFrame.Visible = true
+	WarnFrame.Active = true
+	
+	local expandInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	TweenService:Create(WarnFrame, expandInfo, {
+		Size = UDim2.new(0, 380, 0, 240),
+		Position = UDim2.new(0.5, -190, 0.5, -120)
+	}):Play()
+	TweenService:Create(WarnStroke, expandInfo, {Transparency = 0}):Play()
+	
+	-- 4. Esperar y pasar a la GUI Principal
+	task.wait(4.5)
+	
+	local fadeWarn = TweenService:Create(WarnFrame, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 320, 0, 200),
+		Position = UDim2.new(0.5, -160, 0.5, -100)
+	})
+	TweenService:Create(WarnTitle, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+	TweenService:Create(WarnText, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+	TweenService:Create(WarnStroke, TweenInfo.new(0.4), {Transparency = 1}):Play()
+	
+	fadeWarn:Play()
+	fadeWarn.Completed:Wait()
+	if rainbowConnection then rainbowConnection:Disconnect() end
+	WarnFrame:Destroy()
+	
+	-- 5. Entrada de la GUI Principal
+	MainFrame.Visible = true
+	MainFrame.Size = UDim2.new(0, 210, 0, 200)
+	MainFrame.Position = UDim2.new(0.5, -105, 0.5, -100)
+	
+	local mainEnter = TweenService:Create(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 0,
+		Size = UDim2.new(0, 240, 0, 230),
+		Position = UDim2.new(0.5, -120, 0.5, -115)
+	})
+	TweenService:Create(MainStroke, TweenInfo.new(0.6), {Transparency = 0}):Play()
+	mainEnter:Play()
+	MainFrame.Active = true
+end)
+
+-- Sistema de Arrastre
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+	if not MainFrame.Active then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+	if not MainFrame.Active then return end
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+-- Botón Cerrar (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 26, 0, 26)
+CloseButton.Position = UDim2.new(1, -32, 0, 6)
+CloseButton.BackgroundColor3 = Color3.fromRGB(235, 55, 85)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 13
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.ZIndex = 8
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+setupHoverEffect(CloseButton, Color3.fromRGB(235, 55, 85), Color3.fromRGB(255, 85, 115))
+
+CloseButton.MouseButton1Click:Connect(function()
+	fullCleanup()
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	local fadeOut = TweenService:Create(MainFrame, tweenInfo, {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 180, 0, 170)
+	})
+	TweenService:Create(MainStroke, tweenInfo, {Transparency = 1}):Play()
+	fadeOut:Play()
+	fadeOut.Completed:Wait()
+	ScreenGui:Destroy()
+end)
+
+-- Botón Minimizar (-)
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 26, 0, 26)
+MinimizeBtn.Position = UDim2.new(1, -64, 0, 6)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 15
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.ZIndex = 8
+MinimizeBtn.Parent = MainFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
+
+setupHoverEffect(MinimizeBtn, Color3.fromRGB(45, 45, 60), Color3.fromRGB(65, 65, 85))
+
+-- Campo de Texto
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 200, 0, 30)
+TextBox.Position = UDim2.new(0, 20, 0, 38)
+TextBox.PlaceholderText = T.placeholder
+TextBox.Text = ""
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+TextBox.TextSize = 12
+TextBox.Font = Enum.Font.GothamMedium
+TextBox.ZIndex = 6
+TextBox.Parent = MainFrame
+
+local TextCorner = Instance.new("UICorner")
+TextCorner.CornerRadius = UDim.new(0, 6)
+TextCorner.Parent = TextBox
+
+-- Botón Desplegable
+local DropdownBtn = Instance.new("TextButton")
+DropdownBtn.Size = UDim2.new(0, 200, 0, 26)
+DropdownBtn.Position = UDim2.new(0, 20, 0, 74)
+DropdownBtn.Text = T.selectPlayer
+DropdownBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+DropdownBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+DropdownBtn.TextSize = 11
+DropdownBtn.Font = Enum.Font.GothamMedium
+DropdownBtn.ZIndex = 6
+DropdownBtn.Parent = MainFrame
+
+local DropCorner = Instance.new("UICorner")
+DropCorner.CornerRadius = UDim.new(0, 6)
+DropCorner.Parent = DropdownBtn
+
+setupHoverEffect(DropdownBtn, Color3.fromRGB(35, 35, 48), Color3.fromRGB(50, 50, 68))
+
+-- Lista Desplegable
+local ListFrame = Instance.new("ScrollingFrame")
+ListFrame.Size = UDim2.new(0, 200, 0, 80)
+ListFrame.Position = UDim2.new(0, 20, 0, 104)
+ListFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+ListFrame.BorderSizePixel = 0
+ListFrame.Visible = false
+ListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ListFrame.ScrollBarThickness = 3
+ListFrame.ZIndex = 15
+ListFrame.Parent = MainFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Parent = ListFrame
+
+-- Contenedor Dinámico Inferior
+local LowerContainer = Instance.new("Frame")
+LowerContainer.Name = "LowerContainer"
+LowerContainer.Size = UDim2.new(0, 200, 0, 110)
+LowerContainer.Position = UDim2.new(0, 20, 0, 108)
+LowerContainer.BackgroundTransparency = 1
+LowerContainer.ZIndex = 6
+LowerContainer.Parent = MainFrame
+
+-- Botón Principal
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, 0, 0, 32)
+ToggleButton.Position = UDim2.new(0, 0, 0, 0)
+ToggleButton.Text = T.btnStart
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 180, 120)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 13
+ToggleButton.Font = Enum.Font.FredokaOne
+ToggleButton.ZIndex = 6
+ToggleButton.Parent = LowerContainer
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 6)
+BtnCorner.Parent = ToggleButton
+
+setupHoverEffect(ToggleButton, Color3.fromRGB(0, 180, 120), Color3.fromRGB(0, 210, 140))
+
+-- Panel de Configuración
+local ConfigFrame = Instance.new("Frame")
+ConfigFrame.Name = "ConfigFrame"
+ConfigFrame.Size = UDim2.new(1, 0, 0, 65)
+ConfigFrame.Position = UDim2.new(0, 0, 0, 40)
+ConfigFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 34)
+ConfigFrame.BorderSizePixel = 0
+ConfigFrame.ZIndex = 6
+ConfigFrame.Parent = LowerContainer
+
+local ConfigCorner = Instance.new("UICorner")
+ConfigCorner.CornerRadius = UDim.new(0, 6)
+ConfigCorner.Parent = ConfigFrame
+
+local ConfigTitle = Instance.new("TextLabel")
+ConfigTitle.Size = UDim2.new(1, 0, 0, 18)
+ConfigTitle.Position = UDim2.new(0, 0, 0, 4)
+ConfigTitle.BackgroundTransparency = 1
+ConfigTitle.Text = T.configTitle .. ": " .. tostring(FollowDistance)
+ConfigTitle.TextColor3 = Color3.fromRGB(0, 210, 255)
+ConfigTitle.TextSize = 10
+ConfigTitle.Font = Enum.Font.GothamBold
+ConfigTitle.ZIndex = 7
+ConfigTitle.Parent = ConfigFrame
+
+-- Slider
+local SliderBar = Instance.new("Frame")
+SliderBar.Size = UDim2.new(0, 180, 0, 4)
+SliderBar.Position = UDim2.new(0, 10, 0, 30)
+SliderBar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+SliderBar.BorderSizePixel = 0
+SliderBar.ZIndex = 7
+SliderBar.Parent = ConfigFrame
+
+local SliderBarCorner = Instance.new("UICorner")
+SliderBarCorner.CornerRadius = UDim.new(0, 2)
+SliderBarCorner.Parent = SliderBar
+
+local SliderKnob = Instance.new("TextButton")
+SliderKnob.Size = UDim2.new(0, 12, 0, 16)
+SliderKnob.Position = UDim2.new((FollowDistance - 5) / 45, -6, 0.5, -8)
+SliderKnob.BackgroundColor3 = Color3.fromRGB(0, 210, 255)
+SliderKnob.Text = ""
+SliderKnob.ZIndex = 8
+SliderKnob.Parent = SliderBar
+
+local KnobCorner = Instance.new("UICorner")
+KnobCorner.CornerRadius = UDim.new(0, 4)
+KnobCorner.Parent = SliderKnob
+
+local steps = {5, 10, 20, 30, 40, 50}
+for _, val in ipairs(steps) do
+	local relPos = (val - 5) / 45
+	local mark = Instance.new("Frame")
+	mark.Size = UDim2.new(0, 1, 0, 6)
+	mark.Position = UDim2.new(relPos, 0, 1, 2)
+	mark.BackgroundColor3 = (val == 10) and Color3.fromRGB(0, 210, 255) or Color3.fromRGB(100, 100, 120)
+	mark.BorderSizePixel = 0
+	mark.ZIndex = 7
+	mark.Parent = SliderBar
+
+	local markText = Instance.new("TextLabel")
+	markText.Size = UDim2.new(0, 20, 0, 12)
+	markText.Position = UDim2.new(relPos, -10, 1, 8)
+	markText.BackgroundTransparency = 1
+	markText.Text = tostring(val)
+	markText.TextColor3 = (val == 10) and Color3.fromRGB(0, 210, 255) or Color3.fromRGB(130, 130, 150)
+	markText.TextSize = 8
+	markText.Font = Enum.Font.GothamMedium
+	markText.ZIndex = 7
+	markText.Parent = SliderBar
+end
+
+local draggingSlider = false
+SliderKnob.MouseButton1Down:Connect(function() draggingSlid
