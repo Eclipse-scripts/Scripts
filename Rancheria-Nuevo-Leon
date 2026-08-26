@@ -1,0 +1,266 @@
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+
+local localPlayer = Players.LocalPlayer
+local INFINITO = math.huge
+
+-- Identificador único para evitar colisiones con otros scripts
+local CLAVE_EJECUCION = "EclipseHub_FE_v1"
+local CLAVE_DEX = "EclipseHub_DexInstance"
+
+local function mostrarNotificacion(titulo, texto)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = titulo,
+            Text = texto,
+            Duration = 3
+        })
+    end)
+end
+
+-- ==========================================
+-- 1. OPTIMIZACIÓN: LIMPIEZA EXCLUSIVA DE NUESTRO DEX
+-- ==========================================
+task.spawn(function()
+    local parentTarget = gethui and gethui() or (syn and syn.protect_gui and CoreGui) or localPlayer:WaitForChild("PlayerGui")
+    
+    local function limpiarNuestroDex(container)
+        if not container then return end
+        local dexPropio = container:FindFirstChild(CLAVE_DEX)
+        if dexPropio then
+            pcall(function() dexPropio:Destroy() end)
+        end
+    end
+    
+    limpiarNuestroDex(CoreGui)
+    limpiarNuestroDex(parentTarget)
+end)
+
+-- ==========================================
+-- 2. SISTEMA DE PASES Y CONTROL DE UI
+-- ==========================================
+local function iniciarInterfacesYGamepasses()
+    local parentTarget = gethui and gethui() or (syn and syn.protect_gui and CoreGui) or localPlayer:WaitForChild("PlayerGui")
+
+    -- Verificación de firma única del propio script
+    if _G.EclipseHub_Key == CLAVE_EJECUCION then
+        mostrarNotificacion("Eclipse Hub", "El script ya está activo")
+        return
+    end
+
+    _G.EclipseHub_Key = CLAVE_EJECUCION
+
+    -- Activación de Pases
+    local gamepassesFolder = localPlayer:FindFirstChild("Gamepasses")
+    local listaPases = {"Dinero X2", "Fuerzas Especiales", "Secretaria de Marina"}
+    
+    if gamepassesFolder then
+        local yaTenias = {}
+        for _, nombrePase in ipairs(listaPases) do
+            local paseObj = gamepassesFolder:FindFirstChild(nombrePase)
+            if paseObj and paseObj:IsA("ValueBase") then
+                if paseObj.Value == true then
+                    table.insert(yaTenias, nombrePase)
+                else
+                    paseObj.Value = true
+                end
+            end
+        end
+
+        mostrarNotificacion("Eclipse Hub", "¡Activado con éxito!")
+
+        task.delay(1, function()
+            if #yaTenias == 3 then
+                mostrarNotificacion("Aviso", "Ya tenías todos los pases")
+            elseif #yaTenias > 0 then
+                if #yaTenias == 1 then
+                    mostrarNotificacion("Aviso", "Ya tenías: " .. yaTenias[1])
+                else
+                    mostrarNotificacion("Aviso", "Ya tenías " .. #yaTenias .. " pases")
+                end
+            end
+            yaTenias = nil
+        end)
+    else
+        mostrarNotificacion("Eclipse Hub", "Error al activar pases")
+    end
+
+    -- --------------------------------------------------
+    -- PRIMERA GUI (Eclipse Hub - Banner Principal)
+    -- --------------------------------------------------
+    local screenGui1 = Instance.new("ScreenGui")
+    screenGui1.Name = "EclipseHubBanner1"
+    screenGui1.ResetOnSpawn = false
+    screenGui1.Parent = parentTarget
+
+    local frame1 = Instance.new("Frame")
+    frame1.Size = UDim2.new(0, 230, 0, 48)
+    frame1.Position = UDim2.new(0.5, -115, 0.15, 0)
+    frame1.BackgroundColor3 = Color3.fromRGB(15, 12, 24)
+    frame1.BackgroundTransparency = 0.15
+    frame1.BorderSizePixel = 0
+    frame1.Parent = screenGui1
+
+    local uiCorner1 = Instance.new("UICorner")
+    uiCorner1.CornerRadius = UDim.new(0, 10)
+    uiCorner1.Parent = frame1
+
+    local uiStroke1 = Instance.new("UIStroke")
+    uiStroke1.Color = Color3.fromRGB(160, 90, 255)
+    uiStroke1.Thickness = 1.8
+    uiStroke1.Parent = frame1
+
+    local label1 = Instance.new("TextLabel")
+    label1.Size = UDim2.new(1, 0, 1, 0)
+    label1.BackgroundTransparency = 1
+    label1.Text = "🌙 Creado por Eclipse Hub ✨"
+    label1.TextColor3 = Color3.fromRGB(240, 230, 255)
+    label1.TextSize = 13
+    label1.Font = Enum.Font.GothamBold
+    label1.Parent = frame1
+
+    -- Transición a GUI 2
+    task.delay(3, function()
+        local tweenOutInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local t1 = TweenService:Create(frame1, tweenOutInfo, {BackgroundTransparency = 1})
+        local t2 = TweenService:Create(uiStroke1, tweenOutInfo, {Transparency = 1})
+        local t3 = TweenService:Create(label1, tweenOutInfo, {TextTransparency = 1})
+        
+        t1:Play() t2:Play() t3:Play()
+        
+        t3.Completed:Connect(function()
+            screenGui1:Destroy()
+            
+            -- --------------------------------------------------
+            -- SEGUNDA GUI (Advertencia Extendida y Adaptable)
+            -- --------------------------------------------------
+            local screenGui2 = Instance.new("ScreenGui")
+            screenGui2.Name = "EclipseHubBanner2"
+            screenGui2.ResetOnSpawn = false
+            screenGui2.Parent = parentTarget
+
+            local frame2 = Instance.new("Frame")
+            frame2.Size = UDim2.new(0, 360, 0, 105)
+            frame2.Position = UDim2.new(0.5, -180, 0.10, 0)
+            frame2.BackgroundColor3 = Color3.fromRGB(25, 18, 10)
+            frame2.BackgroundTransparency = 0.1
+            frame2.BorderSizePixel = 0
+            frame2.Parent = screenGui2
+
+            local uiCorner2 = Instance.new("UICorner")
+            uiCorner2.CornerRadius = UDim.new(0, 10)
+            uiCorner2.Parent = frame2
+
+            local uiStroke2 = Instance.new("UIStroke")
+            uiStroke2.Color = Color3.fromRGB(255, 170, 40)
+            uiStroke2.Thickness = 2
+            uiStroke2.Parent = frame2
+
+            local label2 = Instance.new("TextLabel")
+            label2.Size = UDim2.new(1, -24, 1, -16)
+            label2.Position = UDim2.new(0, 12, 0, 8)
+            label2.BackgroundTransparency = 1
+            label2.Text = "⚠️ ADVERTENCIA: Debes recargar tu arma equipada una vez para asegurar el funcionamiento de la munición infinita. En el arma AT4 del equipo de Fuerzas Especiales la munición infinita no funciona, y en algunas armas de gamepass esta función no ha sido probada, por lo que no funciona en todas."
+            label2.TextColor3 = Color3.fromRGB(255, 235, 170)
+            label2.TextTransparency = 0
+            label2.TextScaled = true
+            label2.TextWrapped = true
+            label2.Font = Enum.Font.GothamMedium
+            label2.Parent = frame2
+
+            -- Mantener el tamaño de texto dentro de un rango legible
+            local uiSizeConstraint = Instance.new("UITextSizeConstraint")
+            uiSizeConstraint.MinTextSize = 9
+            uiSizeConstraint.MaxTextSize = 12
+            uiSizeConstraint.Parent = label2
+
+            local tweenParpadeoInfo = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+            local glowStroke = TweenService:Create(uiStroke2, tweenParpadeoInfo, {Color = Color3.fromRGB(255, 60, 20)})
+            glowStroke:Play()
+
+            -- Tiempo de lectura aumentado a 12 segundos
+            task.delay(12, function()
+                glowStroke:Cancel()
+
+                local exitInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                local tout1 = TweenService:Create(frame2, exitInfo, {BackgroundTransparency = 1})
+                local tout2 = TweenService:Create(uiStroke2, exitInfo, {Transparency = 1})
+                local tout3 = TweenService:Create(label2, exitInfo, {TextTransparency = 1})
+
+                tout1:Play() tout2:Play() tout3:Play()
+                tout3.Completed:Connect(function()
+                    screenGui2:Destroy()
+                end)
+            end)
+        end)
+    end)
+end
+
+iniciarInterfacesYGamepasses()
+
+-- ==========================================
+-- 3. MUNICIÓN INFINITA (ACS & VEHÍCULOS)
+-- ==========================================
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        local vehicles = Workspace:FindFirstChild("Vehicles")
+        if vehicles then
+            for _, veh in ipairs(vehicles:GetChildren()) do
+                local misc = veh:FindFirstChild("Misc")
+                if misc and misc:FindFirstChild("50cal") then
+                    local stats = misc["50cal"]:FindFirstChild("Stats")
+                    if stats and stats:FindFirstChild("Ammo") then
+                        stats.Ammo.Value = INFINITO
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local function aplicarMunicionInfinita()
+    for _, scr in ipairs(localPlayer:GetDescendants()) do
+        if scr:IsA("LocalScript") and (scr.Name:find("ACS") or scr.Name:find("Client")) then
+            pcall(function()
+                if getsenv then
+                    local env = getsenv(scr)
+                    if env.Ammo ~= nil then env.Ammo = INFINITO end
+                    if env.StoredAmmo ~= nil then env.StoredAmmo = INFINITO end
+                    if env.Mag ~= nil then env.Mag = INFINITO end
+                    if env.Variaveis then
+                        if env.Variaveis.Ammo ~= nil then env.Variaveis.Ammo = INFINITO end
+                        if env.Variaveis.StoredAmmo ~= nil then env.Variaveis.StoredAmmo = INFINITO end
+                    end
+                end
+            end)
+        end
+    end
+
+    local char = localPlayer.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") then
+                local settingsModule = tool:FindFirstChild("ACS_Settings") or tool:FindFirstChild("Settings")
+                if settingsModule and settingsModule:IsA("ModuleScript") then
+                    pcall(function()
+                        local config = require(settingsModule)
+                        if config.Ammo ~= nil then config.Ammo = INFINITO end
+                        if config.StoredAmmo ~= nil then config.StoredAmmo = INFINITO end
+                        if config.MaxAmmo ~= nil then config.MaxAmmo = INFINITO end
+                    end)
+                end
+            end
+        end
+    end
+end
+
+RunService.Stepped:Connect(function()
+    pcall(aplicarMunicionInfinita)
+end)
+                   
