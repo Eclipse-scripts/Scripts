@@ -4,11 +4,177 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
+local LocalizationService = game:GetService("LocalizationService")
 
 local localPlayer = Players.LocalPlayer
 local INFINITO = math.huge
 
--- Identificador único para evitar colisiones con otros scripts
+-- ==========================================
+-- SISTEMA MULTILENGUAJE COMPLETO
+-- ==========================================
+local Idiomas = {
+    ["en"] = {
+        ScriptActive = "Script is already active",
+        ActivatedSuccess = "Successfully activated!",
+        AllPassesOwned = "You already owned all passes",
+        SinglePassOwned = "You already had: ",
+        MultiplePassesOwned = "You already had %d passes",
+        PassError = "Error activating passes",
+        CreatedBy = "🌙 Created by Eclipse Hub ✨",
+        WarningText = "⚠️ WARNING: You must reload your equipped weapon once to ensure infinite ammo works. Infinite ammo does not work on the Special Forces AT4, and it has not been tested on some gamepass weapons, so it may not work for all.",
+        NoticeTitle = "Notice",
+        HubTitle = "Eclipse Hub"
+    },
+    ["es"] = {
+        ScriptActive = "El script ya está activo",
+        ActivatedSuccess = "¡Activado con éxito!",
+        AllPassesOwned = "Ya tenías todos los pases",
+        SinglePassOwned = "Ya tenías: ",
+        MultiplePassesOwned = "Ya tenías %d pases",
+        PassError = "Error al activar pases",
+        CreatedBy = "🌙 Creado por Eclipse Hub ✨",
+        WarningText = "⚠️ ADVERTENCIA: Debes recargar tu arma equipada una vez para asegurar el funcionamiento de la munición infinita. En el arma AT4 del equipo de Fuerzas Especiales la munición infinita no funciona, y en algunas armas de gamepass esta función no ha sido probada, por lo que no funciona en todas.",
+        NoticeTitle = "Aviso",
+        HubTitle = "Eclipse Hub"
+    },
+    ["pt"] = {
+        ScriptActive = "O script já está ativo",
+        ActivatedSuccess = "Ativado com sucesso!",
+        AllPassesOwned = "Você já possuía todos os passes",
+        SinglePassOwned = "Você já tinha: ",
+        MultiplePassesOwned = "Você já tinha %d passes",
+        PassError = "Erro ao ativar passes",
+        CreatedBy = "🌙 Criado por Eclipse Hub ✨",
+        WarningText = "⚠️ AVISO: Você deve recarregar sua arma equipada uma vez para garantir o funcionamento da munição infinita. A munição infinita não funciona na AT4 das Forças Especiais e não foi testada em algumas armas de passe de jogo, portanto pode não funcionar em todas.",
+        NoticeTitle = "Aviso",
+        HubTitle = "Eclipse Hub"
+    },
+    ["ru"] = {
+        ScriptActive = "Скрипт уже активен",
+        ActivatedSuccess = "Успешно активировано!",
+        AllPassesOwned = "У вас уже есть все пропуски",
+        SinglePassOwned = "У вас уже был: ",
+        MultiplePassesOwned = "У вас уже было пропусков: %d",
+        PassError = "Ошибка активации пропусков",
+        CreatedBy = "🌙 Создано Eclipse Hub ✨",
+        WarningText = "⚠️ ВНИМАНИЕ: Перезарядите экипированное оружие один раз, чтобы убедиться в работе бесконечных патронов. Функция не работает на AT4 Спецназа и не тестировалась на некоторых игровых пропусках.",
+        NoticeTitle = "Уведомление",
+        HubTitle = "Eclipse Hub"
+    },
+    ["fr"] = {
+        ScriptActive = "Le script est déjà actif",
+        ActivatedSuccess = "Activé avec succès!",
+        AllPassesOwned = "Vous possédez déjà tous les passes",
+        SinglePassOwned = "Vous aviez déjà : ",
+        MultiplePassesOwned = "Vous aviez déjà %d passes",
+        PassError = "Erreur lors de l'activation des passes",
+        CreatedBy = "🌙 Créé par Eclipse Hub ✨",
+        WarningText = "⚠️ ATTENTION : Vous devez recharger votre arme équipée une fois pour garantir le fonctionnement des munitions illimitées. Les munitions illimitées ne fonctionnent pas sur l'AT4 des Forces Spéciales et n'ont pas été testées sur toutes les armes de gamepass.",
+        NoticeTitle = "Avis",
+        HubTitle = "Eclipse Hub"
+    },
+    ["de"] = {
+        ScriptActive = "Skript ist bereits aktiv",
+        ActivatedSuccess = "Erfolgreich aktiviert!",
+        AllPassesOwned = "Du besitzt bereits alle Pässe",
+        SinglePassOwned = "Du hattest bereits: ",
+        MultiplePassesOwned = "Du hattest bereits %d Pässe",
+        PassError = "Fehler beim Aktivieren der Pässe",
+        CreatedBy = "🌙 Erstellt von Eclipse Hub ✨",
+        WarningText = "⚠️ WARNUNG: Du musst deine ausgerüstete Waffe einmal nachladen, damit die unendliche Munition funktioniert. Unendliche Munition funktioniert nicht bei der Spezialeinheit AT4 und wurde nicht bei allen Gamepass-Waffen getestet.",
+        NoticeTitle = "Hinweis",
+        HubTitle = "Eclipse Hub"
+    },
+    ["vi"] = {
+        ScriptActive = "Script đã hoạt động",
+        ActivatedSuccess = "Kích hoạt thành công!",
+        AllPassesOwned = "Bạn đã sở hữu tất cả các pass",
+        SinglePassOwned = "Bạn đã có: ",
+        MultiplePassesOwned = "Bạn đã có %d pass",
+        PassError = "Lỗi kích hoạt pass",
+        CreatedBy = "🌙 Được tạo bởi Eclipse Hub ✨",
+        WarningText = "⚠️ CẢNH BÁO: Bạn phải nạp lại đạn cho vũ khí đang trang bị một lần để đảm bảo đạn vô hạn hoạt động. Đạn vô hạn không hoạt động trên AT4 Đặc nhiệm và chưa được thử nghiệm trên một số vũ khí gamepass.",
+        NoticeTitle = "Thông báo",
+        HubTitle = "Eclipse Hub"
+    },
+    ["th"] = {
+        ScriptActive = "สคริปต์ทำงานอยู่แล้ว",
+        ActivatedSuccess = "เปิดใช้งานสำเร็จ!",
+        AllPassesOwned = "คุณมีพาสทั้งหมดอยู่แล้ว",
+        SinglePassOwned = "คุณมีอยู่แล้ว: ",
+        MultiplePassesOwned = "คุณมีพาสอยู่แล้ว %d พาส",
+        PassError = "เกิดข้อผิดพลาดในการเปิดใช้งานพาส",
+        CreatedBy = "🌙 สร้างโดย Eclipse Hub ✨",
+        WarningText = "⚠️ คำเตือน: คุณต้องรีโหลดอาวุธที่ติดตั้งอยู่หนึ่งครั้งเพื่อให้กระสุนไม่จำกัดทำงาน กระสุนไม่จำกัดไม่ทำงานกับ AT4 กองกำลังพิเศษ และยังไม่ได้ทดสอบกับอาวุธเกมพาสบางชนิด",
+        NoticeTitle = "แจ้งเตือน",
+        HubTitle = "Eclipse Hub"
+    },
+    ["ko"] = {
+        ScriptActive = "스크립트가 이미 활성화되어 있습니다",
+        ActivatedSuccess = "성공적으로 활성화되었습니다!",
+        AllPassesOwned = "이미 모든 패스를 보유하고 있습니다",
+        SinglePassOwned = "이미 보유 중: ",
+        MultiplePassesOwned = "이미 %d개의 패스를 보유하고 있습니다",
+        PassError = "패스 활성화 오류",
+        CreatedBy = "🌙 Eclipse Hub 제작 ✨",
+        WarningText = "⚠️ 경고: 무한 총알이 작동하려면 장착된 무기를 한 번 재장전해야 합니다. 특수부대 AT4에서는 무한 총알이 작동하지 않으며, 일부 게임패스 무기에서는 테스트되지 않았습니다.",
+        NoticeTitle = "알림",
+        HubTitle = "Eclipse Hub"
+    },
+    ["ja"] = {
+        ScriptActive = "スクリプトは既に有効です",
+        ActivatedSuccess = "正常に有効化されました！",
+        AllPassesOwned = "既にすべてのパスを所有しています",
+        SinglePassOwned = "既に所有中: ",
+        MultiplePassesOwned = "既に %d 個のパスを所有しています",
+        PassError = "パスのエラーが発生しました",
+        CreatedBy = "🌙 Eclipse Hub 作成 ✨",
+        WarningText = "⚠️ 警告: 無限弾薬を機能させるには、装備している武器を1回リロードする必要があります。特殊部隊のAT4では無限弾薬は機能せず、一部のゲームパス武器ではテストされていません。",
+        NoticeTitle = "通知",
+        HubTitle = "Eclipse Hub"
+    },
+    ["zh"] = {
+        ScriptActive = "脚本已在运行中",
+        ActivatedSuccess = "激活成功！",
+        AllPassesOwned = "您已拥有所有通行证",
+        SinglePassOwned = "您已拥有：",
+        MultiplePassesOwned = "您已拥有 %d 个通行证",
+        PassError = "激活通行证时出错",
+        CreatedBy = "🌙 由 Eclipse Hub 制作 ✨",
+        WarningText = "⚠️ 警告：您必须重新装填一次装备的武器以确保无限子弹生效。特种部队 AT4 不支持无限子弹，且部分游戏通行证武器未经测试。",
+        NoticeTitle = "提示",
+        HubTitle = "Eclipse Hub"
+    },
+    ["tr"] = {
+        ScriptActive = "Komut dosyası zaten etkin",
+        ActivatedSuccess = "Başarıyla etkinleştirildi!",
+        AllPassesOwned = "Zaten tüm biletlere sahipsiniz",
+        SinglePassOwned = "Zaten sahipsiniz: ",
+        MultiplePassesOwned = "Zaten %d bilete sahipsiniz",
+        PassError = "Biletler etkinleştirilirken hata",
+        CreatedBy = "🌙 Eclipse Hub tarafından oluşturuldu ✨",
+        WarningText = "⚠️ UYARI: Sınırsız merminin çalışması için kuşandığınız silahı bir kez doldurmalısınız. Özel Kuvvetler AT4 silahında sınırsız mermi çalışmaz ve bazı oyun bileti silahlarında test edilmemiştir.",
+        NoticeTitle = "Bildirim",
+        HubTitle = "Eclipse Hub"
+    },
+    ["id"] = {
+        ScriptActive = "Skrip sudah aktif",
+        ActivatedSuccess = "Berhasil diaktifkan!",
+        AllPassesOwned = "Anda sudah memiliki semua pass",
+        SinglePassOwned = "Anda sudah memiliki: ",
+        MultiplePassesOwned = "Anda sudah memiliki %d pass",
+        PassError = "Gagal mengaktifkan pass",
+        CreatedBy = "🌙 Dibuat oleh Eclipse Hub ✨",
+        WarningText = "⚠️ PERINGATAN: Anda harus mengisi ulang senjata yang terpasang sekali agar amunisi tak terbatas berfungsi. Amunisi tak terbatas tidak berfungsi pada AT4 Pasukan Khusus dan belum diuji pada beberapa senjata gamepass.",
+        NoticeTitle = "Pemberitahuan",
+        HubTitle = "Eclipse Hub"
+    }
+}
+
+-- Detección de idioma con fallback
+local codigoUsuario = string.lower(string.sub(LocalizationService.RobloxLocaleId, 1, 2))
+local L = Idiomas[codigoUsuario] or Idiomas["en"]
+
 local CLAVE_EJECUCION = "EclipseHub_FE_v1"
 local CLAVE_DEX = "EclipseHub_DexInstance"
 
@@ -22,40 +188,25 @@ local function mostrarNotificacion(titulo, texto)
     end)
 end
 
--- ==========================================
--- 1. OPTIMIZACIÓN: LIMPIEZA EXCLUSIVA DE NUESTRO DEX
--- ==========================================
+-- 1. LIMPIEZA DE DEX (Optimizado)
 task.spawn(function()
     local parentTarget = gethui and gethui() or (syn and syn.protect_gui and CoreGui) or localPlayer:WaitForChild("PlayerGui")
-    
-    local function limpiarNuestroDex(container)
-        if not container then return end
-        local dexPropio = container:FindFirstChild(CLAVE_DEX)
-        if dexPropio then
-            pcall(function() dexPropio:Destroy() end)
-        end
-    end
-    
-    limpiarNuestroDex(CoreGui)
-    limpiarNuestroDex(parentTarget)
+    if CoreGui:FindFirstChild(CLAVE_DEX) then pcall(function() CoreGui[CLAVE_DEX]:Destroy() end) end
+    if parentTarget:FindFirstChild(CLAVE_DEX) then pcall(function() parentTarget[CLAVE_DEX]:Destroy() end) end
 end)
 
--- ==========================================
--- 2. SISTEMA DE PASES Y CONTROL DE UI
--- ==========================================
+-- 2. CONTROL DE UI Y PASES
 local function iniciarInterfacesYGamepasses()
     local parentTarget = gethui and gethui() or (syn and syn.protect_gui and CoreGui) or localPlayer:WaitForChild("PlayerGui")
 
-    -- Verificación de firma única del propio script
     if _G.EclipseHub_Key == CLAVE_EJECUCION then
-        mostrarNotificacion("Eclipse Hub", "El script ya está activo")
+        mostrarNotificacion(L.HubTitle, L.ScriptActive)
         return
     end
 
     _G.EclipseHub_Key = CLAVE_EJECUCION
 
-    -- Activación de Pases
-    local gamepassesFolder = localPlayer:FindFirstChild("Gamepasses")
+    local gamepassesFolder = localPlayer:FindFirstChild("Gamepasses") or localPlayer:FindFirstChild("Pases_de_juego")
     local listaPases = {"Dinero X2", "Fuerzas Especiales", "Secretaria de Marina"}
     
     if gamepassesFolder then
@@ -71,27 +222,25 @@ local function iniciarInterfacesYGamepasses()
             end
         end
 
-        mostrarNotificacion("Eclipse Hub", "¡Activado con éxito!")
+        mostrarNotificacion(L.HubTitle, L.ActivatedSuccess)
 
         task.delay(1, function()
             if #yaTenias == 3 then
-                mostrarNotificacion("Aviso", "Ya tenías todos los pases")
+                mostrarNotificacion(L.NoticeTitle, L.AllPassesOwned)
             elseif #yaTenias > 0 then
                 if #yaTenias == 1 then
-                    mostrarNotificacion("Aviso", "Ya tenías: " .. yaTenias[1])
+                    mostrarNotificacion(L.NoticeTitle, L.SinglePassOwned .. yaTenias[1])
                 else
-                    mostrarNotificacion("Aviso", "Ya tenías " .. #yaTenias .. " pases")
+                    mostrarNotificacion(L.NoticeTitle, string.format(L.MultiplePassesOwned, #yaTenias))
                 end
             end
             yaTenias = nil
         end)
     else
-        mostrarNotificacion("Eclipse Hub", "Error al activar pases")
+        mostrarNotificacion(L.HubTitle, L.PassError)
     end
 
-    -- --------------------------------------------------
-    -- PRIMERA GUI (Eclipse Hub - Banner Principal)
-    -- --------------------------------------------------
+    -- PRIMERA GUI
     local screenGui1 = Instance.new("ScreenGui")
     screenGui1.Name = "EclipseHubBanner1"
     screenGui1.ResetOnSpawn = false
@@ -117,13 +266,13 @@ local function iniciarInterfacesYGamepasses()
     local label1 = Instance.new("TextLabel")
     label1.Size = UDim2.new(1, 0, 1, 0)
     label1.BackgroundTransparency = 1
-    label1.Text = "🌙 Creado por Eclipse Hub ✨"
+    label1.Text = L.CreatedBy
     label1.TextColor3 = Color3.fromRGB(240, 230, 255)
     label1.TextSize = 13
     label1.Font = Enum.Font.GothamBold
     label1.Parent = frame1
 
-    -- Transición a GUI 2
+    -- TRANSICIÓN GUI 2
     task.delay(3, function()
         local tweenOutInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local t1 = TweenService:Create(frame1, tweenOutInfo, {BackgroundTransparency = 1})
@@ -135,9 +284,6 @@ local function iniciarInterfacesYGamepasses()
         t3.Completed:Connect(function()
             screenGui1:Destroy()
             
-            -- --------------------------------------------------
-            -- SEGUNDA GUI (Advertencia Extendida y Adaptable)
-            -- --------------------------------------------------
             local screenGui2 = Instance.new("ScreenGui")
             screenGui2.Name = "EclipseHubBanner2"
             screenGui2.ResetOnSpawn = false
@@ -164,7 +310,7 @@ local function iniciarInterfacesYGamepasses()
             label2.Size = UDim2.new(1, -24, 1, -16)
             label2.Position = UDim2.new(0, 12, 0, 8)
             label2.BackgroundTransparency = 1
-            label2.Text = "⚠️ ADVERTENCIA: Debes recargar tu arma equipada una vez para asegurar el funcionamiento de la munición infinita. En el arma AT4 del equipo de Fuerzas Especiales la munición infinita no funciona, y en algunas armas de gamepass esta función no ha sido probada, por lo que no funciona en todas."
+            label2.Text = L.WarningText
             label2.TextColor3 = Color3.fromRGB(255, 235, 170)
             label2.TextTransparency = 0
             label2.TextScaled = true
@@ -172,7 +318,6 @@ local function iniciarInterfacesYGamepasses()
             label2.Font = Enum.Font.GothamMedium
             label2.Parent = frame2
 
-            -- Mantener el tamaño de texto dentro de un rango legible
             local uiSizeConstraint = Instance.new("UITextSizeConstraint")
             uiSizeConstraint.MinTextSize = 9
             uiSizeConstraint.MaxTextSize = 12
@@ -182,10 +327,8 @@ local function iniciarInterfacesYGamepasses()
             local glowStroke = TweenService:Create(uiStroke2, tweenParpadeoInfo, {Color = Color3.fromRGB(255, 60, 20)})
             glowStroke:Play()
 
-            -- Tiempo de lectura aumentado a 12 segundos
             task.delay(12, function()
                 glowStroke:Cancel()
-
                 local exitInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
                 local tout1 = TweenService:Create(frame2, exitInfo, {BackgroundTransparency = 1})
                 local tout2 = TweenService:Create(uiStroke2, exitInfo, {Transparency = 1})
@@ -203,64 +346,107 @@ end
 iniciarInterfacesYGamepasses()
 
 -- ==========================================
--- 3. MUNICIÓN INFINITA (ACS & VEHÍCULOS)
+-- 3. MIRA TÁCTICA INTEGRADA (0.5, 0.40)
 -- ==========================================
+task.spawn(function()
+    local parentTarget = gethui and gethui() or (syn and syn.protect_gui and CoreGui) or localPlayer:WaitForChild("PlayerGui")
 
+    if parentTarget:FindFirstChild("EclipseCrosshair") then
+        parentTarget.EclipseCrosshair:Destroy()
+    end
+
+    local crosshairGui = Instance.new("ScreenGui")
+    crosshairGui.Name = "EclipseCrosshair"
+    crosshairGui.ResetOnSpawn = false
+    crosshairGui.Enabled = false
+    crosshairGui.Parent = parentTarget
+
+    local center = Instance.new("Frame")
+    center.Size = UDim2.new(0, 0, 0, 0)
+    center.Position = UDim2.new(0.5, 0, 0.40, 0)
+    center.BackgroundTransparency = 1
+    center.Parent = crosshairGui
+
+    local colorMira = Color3.fromRGB(0, 255, 170)
+    local gap, length, thickness = 3, 8, 2
+
+    local top = Instance.new("Frame", center)
+    top.Size = UDim2.new(0, thickness, 0, length)
+    top.Position = UDim2.new(0, -thickness/2, 0, -gap - length)
+    top.BackgroundColor3 = colorMira
+    top.BorderSizePixel = 0
+
+    local bottom = Instance.new("Frame", center)
+    bottom.Size = UDim2.new(0, thickness, 0, length)
+    bottom.Position = UDim2.new(0, -thickness/2, 0, gap)
+    bottom.BackgroundColor3 = colorMira
+    bottom.BorderSizePixel = 0
+
+    local left = Instance.new("Frame", center)
+    left.Size = UDim2.new(0, length, 0, thickness)
+    left.Position = UDim2.new(0, -gap - length, 0, -thickness/2)
+    left.BackgroundColor3 = colorMira
+    left.BorderSizePixel = 0
+
+    local right = Instance.new("Frame", center)
+    right.Size = UDim2.new(0, length, 0, thickness)
+    right.Position = UDim2.new(0, gap, 0, -thickness/2)
+    right.BackgroundColor3 = colorMira
+    right.BorderSizePixel = 0
+
+    local function actualizarMira(character)
+        if not character then return end
+        local function chequearTool()
+            crosshairGui.Enabled = (character:FindFirstChildOfClass("Tool") ~= nil)
+        end
+        character.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then crosshairGui.Enabled = true end
+        end)
+        character.ChildRemoved:Connect(function(child)
+            if child:IsA("Tool") then task.defer(chequearTool) end
+        end)
+        chequearTool()
+    end
+
+    if localPlayer.Character then actualizarMira(localPlayer.Character) end
+    localPlayer.CharacterAdded:Connect(actualizarMira)
+end)
+
+-- 4. MUNICIÓN INFINITA OPTIMIZADA (Loop de 1 segundo en segundo plano)
 task.spawn(function()
     while true do
-        task.wait(0.2)
+        task.wait(1)
+        
+        -- Munición de vehículos
         local vehicles = Workspace:FindFirstChild("Vehicles")
         if vehicles then
             for _, veh in ipairs(vehicles:GetChildren()) do
-                local misc = veh:FindFirstChild("Misc")
-                if misc and misc:FindFirstChild("50cal") then
-                    local stats = misc["50cal"]:FindFirstChild("Stats")
-                    if stats and stats:FindFirstChild("Ammo") then
-                        stats.Ammo.Value = INFINITO
-                    end
+                local stats = veh:FindFirstChild("Misc") and veh.Misc:FindFirstChild("50cal") and veh.Misc["50cal"]:FindFirstChild("Stats")
+                if stats and stats:FindFirstChild("Ammo") then
+                    stats.Ammo.Value = INFINITO
                 end
             end
         end
-    end
-end)
 
-local function aplicarMunicionInfinita()
-    for _, scr in ipairs(localPlayer:GetDescendants()) do
-        if scr:IsA("LocalScript") and (scr.Name:find("ACS") or scr.Name:find("Client")) then
-            pcall(function()
-                if getsenv then
-                    local env = getsenv(scr)
-                    if env.Ammo ~= nil then env.Ammo = INFINITO end
-                    if env.StoredAmmo ~= nil then env.StoredAmmo = INFINITO end
-                    if env.Mag ~= nil then env.Mag = INFINITO end
-                    if env.Variaveis then
-                        if env.Variaveis.Ammo ~= nil then env.Variaveis.Ammo = INFINITO end
-                        if env.Variaveis.StoredAmmo ~= nil then env.Variaveis.StoredAmmo = INFINITO end
+        -- Munición del jugador (ACS)
+        pcall(function()
+            for _, scr in ipairs(localPlayer:GetDescendants()) do
+                if scr:IsA("LocalScript") and (scr.Name:find("ACS") or scr.Name:find("Client")) then
+                    if getsenv then
+                        local env = getsenv(scr)
+                        if env.Ammo ~= nil then env.Ammo = INFINITO end
+                        if env.StoredAmmo ~= nil then env.StoredAmmo = INFINITO end
+                        if env.Mag ~= nil then env.Mag = INFINITO end
+                        if env.Variaveis then
+                            if env.Variaveis.Ammo ~= nil then env.Variaveis.Ammo = INFINITO end
+                            if env.Variaveis.StoredAmmo ~= nil then env.Variaveis.StoredAmmo = INFINITO end
+                        end
                     end
                 end
-            end)
-        end
-    end
-
-    local char = localPlayer.Character
-    if char then
-        for _, tool in ipairs(char:GetChildren()) do
-            if tool:IsA("Tool") then
-                local settingsModule = tool:FindFirstChild("ACS_Settings") or tool:FindFirstChild("Settings")
-                if settingsModule and settingsModule:IsA("ModuleScript") then
-                    pcall(function()
-                        local config = require(settingsModule)
-                        if config.Ammo ~= nil then config.Ammo = INFINITO end
-                        if config.StoredAmmo ~= nil then config.StoredAmmo = INFINITO end
-                        if config.MaxAmmo ~= nil then config.MaxAmmo = INFINITO end
-                    end)
-                end
             end
-        end
-    end
-end
 
-RunService.Stepped:Connect(function()
-    pcall(aplicarMunicionInfinita)
-end)
-                   
+            local char = localPlayer.Character
+            if char then
+                for _, tool in ipairs(char:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        local settingsModule = tool:FindFirstChild("ACS_Settings") or to
